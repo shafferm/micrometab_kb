@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Single OTU Request</title>
+    <link rel=stylesheet type=text/css href="{{ url_for('static', filename='bootstrap.min.css') }}">
+	<script type="text/javascript" src="{{ url_for('static', filename='jquery-3.1.1.min.js') }}"></script>
+	<script type="text/javascript" src="{{ url_for('static', filename='bootstrap.min.js') }}"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Look up a single GreenGenes OTU</h1>
+        <form action="{{ url_for('retrive_single_otu_entry') }}" method='post'>
+            <p>GreenGenes OTU ID:</p>
+            <select class="selectpicker" name="name">
+            {% for i in otu_ids %}
+                <option value="{{ i }}">{{ i }}</option>
+            {% endfor %}
+            </select>
+            <input type='submit' value='Submit'>
+            <a href="{{ url_for('welcome_page') }}">Cancel</a>
+        </form>
+    </div>
+</body>
+</html>
