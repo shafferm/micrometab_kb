@@ -57,6 +57,36 @@ def generate_network(otu_id):
     return render_template('viewNetwork.html', otu_id=otu_id)
 
 
+@app.route('/pair_otu/', methods=['GET', 'POST'])
+def retrive_paired_otu_entry():
+    if request.method == 'POST':
+        exception_caught = False
+        # check and make sure otu1 is in the database
+        otu1_id = request.form['name1']
+        try:
+            otu1 = session.query(Genome).filter_by(name=otu1_id).one()
+        except NoResultFound:
+            exception_caught = True
+            flash("GreenGenes OTU ID %s not found in database." % otu1_id)
+
+        # check and make sure otu2 is in the database
+        otu2_id = request.form['name2']
+        try:
+            otu2 = session.query(Genome).filter_by(name=otu2_id).one()
+        except NoResultFound:
+            exception_caught = True
+            flash("GreenGenes OTU ID %s not found in database." % otu2_id)
+
+        # if either OTU id entered is not in database then go back to request screen
+        if exception_caught:
+            return render_template('pairOTURequest.html')
+        else:
+            return redirect(url_for('pair_otu_result', otu1_id=otu1_id, otu2_id=otu2_id))
+
+    else:
+        return render_template('pairOTURequest.html')
+
+
 @app.route('/result/single_otu/<int:otu_id>/cyto_network/')
 def generate_cyto_network(otu_id):
     genome = session.query(Genome).filter_by(name=otu_id).one()
@@ -68,6 +98,13 @@ def generate_cyto_network(otu_id):
     height = 700
     return render_template('viewCytoscapeNetwork.html', nodes=json.dumps(nodes), edges=json.dumps(edges), uuid=new_uuid,
                            widget_width=str(width), widget_height=str(height))
+
+
+@app.route('/result/pair_otu/<int:otu1_id>/<int:otu2_id>/')
+def pair_otu_result(otu1_id, otu2_id):
+    genome1 = session.query(Genome).filter_by(name=otu1_id).one()
+    genome2 = session.query(Genome).filter_by(name=otu2_id).one()
+    return render_template('pairOTUResult.html', genome1=genome1, genome2=genome2)
 
 
 @app.route('/test_network/')
