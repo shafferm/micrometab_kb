@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm.exc import NoResultFound
 from database_setup import Genome, Base
 import networkx as nx
 import json
@@ -25,9 +26,14 @@ def welcome_page():
 def retrive_single_otu_entry():
     if request.method == 'POST':
         otu_id = request.form['name']
-        return redirect(url_for('single_otu_result', otu_id=otu_id))
+        try:
+            otu = session.query(Genome).filter_by(name=otu_id).one()
+            return redirect(url_for('single_otu_result', otu_id=otu_id))
+        except NoResultFound:
+            flash("GreenGenes OTU ID %s not found in database." % otu_id)
+            return render_template('singleOTURequest.html')
     else:
-        return render_template('singleOTURequest.html', otu_ids=[str(i.name) for i in session.query(Genome).all()])
+        return render_template('singleOTURequest.html')
 
 
 @app.route('/result/single_otu/<int:otu_id>/')
@@ -82,5 +88,6 @@ def generate_house_network():
                            widget_width=str(width), widget_height=str(height))
 
 if __name__ == '__main__':
+    app.secret_key = 'super_secret_key'
     app.debug = True
     app.run()

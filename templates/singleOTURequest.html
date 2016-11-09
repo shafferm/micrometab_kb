@@ -9,17 +9,26 @@
 </head>
 <body>
     <div class="container">
-        <h1>Look up a single GreenGenes OTU</h1>
-        <form action="{{ url_for('retrive_single_otu_entry') }}" method='post'>
+        <div class="col-md-12">
+            <h1>Look up a single GreenGenes OTU</h1>
+        </div>
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="col-md-12">
+                        <p> <strong> {{ message }} </strong></p>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        <div class="col-md-12">
+            <form action="{{ url_for('retrive_single_otu_entry') }}" method='post'>
             <p>GreenGenes OTU ID:</p>
-            <select class="selectpicker" name="name">
-            {% for i in otu_ids %}
-                <option value="{{ i }}">{{ i }}</option>
-            {% endfor %}
-            </select>
+            <input type="text" name="name">
             <input type='submit' value='Submit'>
             <a href="{{ url_for('welcome_page') }}">Cancel</a>
         </form>
+        </div>
     </div>
 </body>
 </html>
