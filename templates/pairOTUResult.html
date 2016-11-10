@@ -13,24 +13,51 @@
             <h1>Pair OTU Result</h1>
         </div>
         <div class="col-md-6">
+            <h4>OTU ID:</h4>
+            <p>{{ genome1.name }}</p>
             <h4>Taxonomy:</h4>
             <p>{{ genome1.taxonomy }}</p>
             <h4>NSTI:</h4>
             <p>{{ genome1.nsti }}</p>
             <h4>Metabolic Network:</h4>
             <p>placeholder</p>
-            <h4>Seed Compounds:</h4>
-            <p>placeholder</p>
+            <h4>Unique Seed Compounds:</h4>
+            <p>
+            {% for i in seeds1 %}
+                <a href="http://www.genome.jp/dbget-bin/www_bget?{{ i }}">{{ i }}</a>
+            {% endfor %}
+            </p>
         </div>
         <div class="col-md-6">
+            <h4>OTU ID:</h4>
+            <p>{{ genome2.name }}</p>
             <h4>Taxonomy:</h4>
             <p>{{ genome2.taxonomy }}</p>
             <h4>NSTI:</h4>
             <p>{{ genome2.nsti }}</p>
             <h4>Metabolic Network:</h4>
             <p>placeholder</p>
-            <h4>Seed Compounds:</h4>
-            <p>placeholder</p>
+            <h4>Unique Seed Compounds:</h4>
+            <p>
+            {% for i in seeds2 %}
+                <a href="http://www.genome.jp/dbget-bin/www_bget?{{ i }}">{{ i }}</a>
+            {% endfor %}
+            </p>
+        </div>
+        <div class="col-md-12">
+            <h2>OTU Comparison</h2>
+            <h4>Shared Seeds:</h4>
+            <p>
+            {% for i in shared_seeds %}
+                <a href="http://www.genome.jp/dbget-bin/www_bget?{{ i }}">{{ i }}</a>
+            {% endfor %}
+            </p>
+            <h4>BSS Scores:</h4>
+            <p>{{ genome1.name }} BSS with respect to {{ genome2.name }}: {{ net1net2_bss }}</p>
+            <p>{{ genome2.name }} BSS with respect to {{ genome1.name }}: {{ net2net1_bss }}</p>
+            <h4>MCI Scores:</h4>
+            <p>{{ genome1.name }} BSS with respect to {{ genome2.name }}: {{ net1net2_mci }}</p>
+            <p>{{ genome2.name }} BSS with respect to {{ genome1.name }}: {{ net2net1_mci }}</p>
         </div>
     </div>
 </body>

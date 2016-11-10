@@ -24,6 +24,22 @@
         <div class="col-md-12">
             <p>{{ genome.nsti }}</p>
         </div>
+        <div class="col-md-12">
+            <h4>Metabolic Network:</h4>
+        </div>
+        <div class="col-md-12">
+            <p>placeholder</p>
+        </div>
+        <div class="col-md-12">
+            <h4>Seed Compounds:</h4>
+        </div>
+        <div class="col-md-12">
+            <p>
+            {% for i in seeds %}
+                <a href="http://www.genome.jp/dbget-bin/www_bget?{{ i }}">{{ i }}</a>
+            {% endfor %}
+            </p>
+        </div>
     </div>
 </body>
 </html>
