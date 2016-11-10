@@ -16,6 +16,8 @@ Base.metadata.bind = engine
 DBSession = sessionmaker(bind=engine)
 session = DBSession()
 
+#TODO: Make taxa strings pretty
+#TODO: Figure out a way to add in tree distance between OTUs
 
 @app.route('/')
 def welcome_page():
