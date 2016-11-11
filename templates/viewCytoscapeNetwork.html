@@ -2,6 +2,8 @@
 <html>
 <head>
     <meta charset="UTF-8">
+    <script type="text/javascript" src="{{ url_for('static', filename='jquery-3.1.1.min.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('static', filename='cytoscape.js') }}"></script>
     <script>
     (function() {
       function render() {
@@ -29,7 +31,7 @@
           console.log("Ready to render graph!");
           render();
         }
-      }
+      };
       before_render();
     })();
     </script>

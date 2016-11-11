@@ -94,13 +94,7 @@ def pair_otu_result():
 def generate_house_network():
     house_net = nx.house_graph()
     house_net_json = cy.from_networkx(house_net)
-    new_uuid = "cy" + str(uuid.uuid4())
-    width = 1098
-    height = 700
-    nodes = house_net_json['elements']['nodes']
-    edges = house_net_json['elements']['edges']
-    return render_template('viewCytoscapeNetwork.html', nodes=json.dumps(nodes), edges=json.dumps(edges), uuid=new_uuid,
-                           widget_width=str(width), widget_height=str(height))
+    return render_template('simple_cyto.html', eles=json.dumps(house_net_json['elements']))
 
 
 @app.route('/result/single_otu/<int:otu_id>/network/')
@@ -112,9 +106,13 @@ def generate_cyto_network(otu_id):
     new_uuid = "cy" + str(uuid.uuid4())
     width = 1098
     height = 700
-    return render_template('viewCytoscapeNetwork.html', nodes=json.dumps(nodes), edges=json.dumps(edges), uuid=new_uuid,
-                           widget_width=str(width), widget_height=str(height))
+    return render_template('simple_cyto.html', eles=json.dumps(metab_net['elements']))
 
+@app.route('/simple/')
+def generate_simple_network():
+    house_net = nx.house_graph()
+    house_net_json = cy.from_networkx(house_net)
+    return render_template("simple_cyto.html", eles=json.dumps(house_net_json['elements']))
 
 if __name__ == '__main__':
     app.secret_key = 'super_secret_key'

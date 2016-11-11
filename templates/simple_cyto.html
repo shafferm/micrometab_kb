@@ -1,0 +1,51 @@
+<!doctype html>
+<html>
+<head>
+    <title>Tutorial 1: Getting Started</title>
+    <link rel=stylesheet type=text/css href="{{ url_for('static', filename='bootstrap.min.css') }}">
+	<script type="text/javascript" src="{{ url_for('static', filename='jquery-3.1.1.min.js') }}"></script>
+	<script type="text/javascript" src="{{ url_for('static', filename='bootstrap.min.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('static', filename='cytoscape.js') }}"></script>
+</head>
+<style>
+    #cy {
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+    }
+</style>
+<body>
+    <div class="container">
+        <h1>Some Network</h1>
+        <div id="cy"></div>
+    </div>
+    <script>
+        $(function() {
+            var cy = cytoscape({
+                layout: {
+                    name: 'cose'
+                },
+                container: document.getElementById('cy'),
+                elements: {{ eles | safe }},
+                style: [
+                    {
+                        selector: 'edge',
+                        style: {
+                            'target-arrow-shape': 'triangle',
+                            'target-arrow-color': 'black'
+                        }
+                    }, {
+                        selector: 'node',
+                        style: {
+                            'label': 'data(id)',
+                            'text-valign': 'center'
+                        }
+                    }
+                ]
+            });
+        });
+    </script>
+</body>
+</html>

@@ -10,35 +10,28 @@
 <body>
     <div class="container">
         <div class="col-md-12">
-            <h1>{{ genome.name }} Data Entry</h1>
+            <h1>Single OTU Analysis</h1>
         </div>
         <div class="col-md-12">
-            <h4>Taxonomy</h4>
-        </div>
-        <div class="col-md-12">
-            <p>{{ genome.taxonomy }}</p>
-        </div>
-        <div class="col-md-12">
-            <h4>NSTI</h4>
-        </div>
-        <div class="col-md-12">
-            <p>{{ genome.nsti }}</p>
-        </div>
-        <div class="col-md-12">
-            <h4>Metabolic Network:</h4>
-        </div>
-        <div class="col-md-12">
-            <p>placeholder</p>
-        </div>
-        <div class="col-md-12">
-            <h4>Seed Compounds:</h4>
-        </div>
-        <div class="col-md-12">
-            <p>
-            {% for i in seeds %}
-                <a href="http://www.genome.jp/dbget-bin/www_bget?{{ i }}">{{ i }}</a>
-            {% endfor %}
-            </p>
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title"> OTU {{ genome.name }}</h3>
+                </div>
+                <div class="panel-body">
+                    <h4>Taxonomy:</h4>
+                    <p>{{ genome.taxonomy }}</p>
+                    <h4>NSTI:</h4>
+                    <p>{{ genome.nsti }}</p>
+                    <h4>Metabolic Network:</h4>
+                    <a href="{{ url_for('generate_cyto_network', otu_id=genome.name) }}">Link</a>
+                    <h4>Seed Compounds:</h4>
+                    <p>
+                    {% for i in seeds %}
+                        <a href="http://www.genome.jp/dbget-bin/www_bget?{{ i }}">{{ i }}</a>
+                    {% endfor %}
+                    </p>
+                </div>
+            </div>
         </div>
     </div>
 </body>
