@@ -35,10 +35,12 @@ def single_otu_result():
             except NoResultFound:
                 flash("OTU id %s not in database." % request.form['name'])
                 return redirect(url_for('welcome_page'))
-            metab_net = cy.to_networkx(json.loads(genome.metab_net))
+            metab_net_json = json.loads(genome.metab_net)
+            metab_net = cy.to_networkx(metab_net_json)
             metab_net, ss = mna.determine_seed_set(metab_net)
             seeds = [j for i in ss.values() for j in i]
-            return render_template('singleOTUResult.html', genome=genome, seeds=sorted(seeds))
+            return render_template('singleOTUResult.html', genome=genome, seeds=sorted(seeds),
+                                   eles=json.dumps(metab_net_json['elements']))
         else:
             flash("No OTU id entered for single analysis.")
             return redirect(url_for('welcome_page'))
@@ -101,11 +103,6 @@ def generate_house_network():
 def generate_cyto_network(otu_id):
     genome = session.query(Genome).filter_by(name=otu_id).one()
     metab_net = json.loads(genome.metab_net)
-    nodes = metab_net['elements']['nodes']
-    edges = metab_net['elements']['edges']
-    new_uuid = "cy" + str(uuid.uuid4())
-    width = 1098
-    height = 700
     return render_template('simple_cyto.html', eles=json.dumps(metab_net['elements']))
 
 @app.route('/simple/')
