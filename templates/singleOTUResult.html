@@ -23,7 +23,7 @@
                     <h4>NSTI:</h4>
                     <p>{{ genome.nsti }}</p>
                     <h4>Metabolic Network:</h4>
-                    <a href="{{ url_for('generate_cyto_network', otu_id=genome.name) }}">Link</a>
+                    <a href="{{ url_for("generate_cyto_network", otu_id=genome.name) }}">Link</a>
                     <h4>Seed Compounds:</h4>
                     <p>
                     {% for i in seeds %}
