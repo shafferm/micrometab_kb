@@ -12,13 +12,13 @@ def determine_seed_set(metab_net):
         in_nodes = set([i[0] for i in metab_net.in_edges(ssc)])
         if len(in_nodes - ssc) == 0:
             for co in ssc:
-                metab_net.node[co]['Seed'] = "True"
+                metab_net.node[co]['Seed'] = 1
                 metab_net.node[co]['SeedGroup'] = seed_group
                 seed_sets[seed_group].append(co)
             seed_group += 1
         else:
             for co in ssc:
-                metab_net.node[co]['Seed'] = "False"
+                metab_net.node[co]['Seed'] = 0
     return metab_net, seed_sets
 
 

@@ -3,10 +3,75 @@
 <head>
     <meta charset="UTF-8">
     <title>Pair OTU Result</title>
-    <script type="text/javascript" src="{{ url_for('static', filename='jquery-3.1.1.min.js') }}"></script>
-	<script type="text/javascript" src="{{ url_for('static', filename='bootstrap.min.js') }}"></script>
     <link rel=stylesheet type=text/css href="{{ url_for('static', filename='bootstrap.min.css') }}">
     <link rel=stylesheet type=text/css href="{{ url_for('static', filename='style.css') }}">
+	<script type="text/javascript" src="{{ url_for('static', filename='jquery-3.1.1.min.js') }}"></script>
+	<script type="text/javascript" src="{{ url_for('static', filename='bootstrap.min.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('static', filename='cytoscape.js') }}"></script>
+    <script type="text/javascript">
+        $(function() {
+            var win = $(window);
+            win.resize(function() {
+                resize();
+            });
+            function resize() {
+                console.log(win.height(), win.innerHeight());
+                $("#cy-container1").height(win.innerHeight() - 130);
+                $("#cy-container2").height(win.innerHeight() - 130);
+                cy1.resize();
+                cy2.resize();
+            }
+            setTimeout(resize, 0);
+            var cy1 = window.cy1 = cytoscape({
+                layout: {
+                    name: 'cose'
+                },
+                container: document.getElementById('cy1'),
+                elements: {{ eles1 | safe }},
+                style: [
+                    {
+                        selector: 'edge',
+                        style: {
+                            'target-arrow-shape': 'triangle',
+                            'target-arrow-color': 'black'
+                        }
+                    },
+                    {
+                        selector: 'node',
+                        style: {
+                            'label': 'data(id)',
+                            'text-valign': 'center',
+                            'background-color': 'mapData(Seed, 0, 1, gray, red)'
+                        }
+                    }
+                ]
+            });
+            var cy2 = window.cy2 = cytoscape({
+                layout: {
+                    name: 'cose'
+                },
+                container: document.getElementById('cy2'),
+                elements: {{ eles2 | safe }},
+                style: [
+                    {
+                        selector: 'edge',
+                        style: {
+                            'target-arrow-shape': 'triangle',
+                            'target-arrow-color': 'black'
+                        }
+                    },
+                    {
+                        selector: 'node',
+                        style: {
+                            'label': 'data(id)',
+                            'text-valign': 'center',
+                            'background-color': 'mapData(Seed, 0, 1, gray, red)'
+                        }
+                    }
+                ]
+            });
+        });
+    </script>
 </head>
 <body>
     <div class="container">
@@ -24,7 +89,9 @@
                     <h4>NSTI:</h4>
                     <p>{{ genome1.nsti }}</p>
                     <h4>Metabolic Network:</h4>
-                    <p>placeholder</p>
+                    <div id="cy-container1">
+                        <div id="cy1"></div>
+                    </div>
                     <h4>Unique Seed Compounds:</h4>
                     <p>
                     {% for i in seeds1 %}
@@ -45,7 +112,9 @@
                     <h4>NSTI:</h4>
                     <p>{{ genome2.nsti }}</p>
                     <h4>Metabolic Network:</h4>
-                    <p>placeholder</p>
+                    <div id="cy-container2">
+                        <div id="cy2"></div>
+                    </div>
                     <h4>Unique Seed Compounds:</h4>
                     <p>
                     {% for i in seeds2 %}

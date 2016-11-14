@@ -5,7 +5,6 @@ from sqlalchemy.orm.exc import NoResultFound
 from database_setup import Genome, Base
 import networkx as nx
 import json
-import uuid
 from py2cytoscape import util as cy
 import metabolic_network_analysis as mna
 
@@ -69,8 +68,10 @@ def pair_otu_result():
                 return redirect(url_for('welcome_page'))
 
             # get data and render webpage
-            metab_net1 = cy.to_networkx(json.loads(genome1.metab_net))
-            metab_net2 = cy.to_networkx(json.loads(genome2.metab_net))
+            metab_net1_json = json.loads(genome1.metab_net)
+            metab_net1 = cy.to_networkx(metab_net1_json)
+            metab_net2_json = json.loads(genome2.metab_net)
+            metab_net2 = cy.to_networkx(metab_net2_json)
             metab_net1, ss1 = mna.determine_seed_set(metab_net1)
             metab_net2, ss2 = mna.determine_seed_set(metab_net2)
             seeds1 = set([j for i in ss1.values() for j in i])
@@ -80,10 +81,12 @@ def pair_otu_result():
             shared_seeds = seeds1 & seeds2
             net1net2_bss, net2net1_bss = mna.calculate_bss(metab_net1, ss1, metab_net2, ss2)
             net1net2_mci, net2net1_mci = mna.calculate_mci(metab_net1, ss1, metab_net2, ss2)
-            return render_template('pairOTUResult.html', genome1=genome1, seeds1=sorted(seeds1_only), genome2=genome2,
-                                   seeds2=sorted(seeds2_only), shared_seeds=sorted(shared_seeds),
-                                   net1net2_bss=round(net1net2_bss, 2), net2net1_bss=round(net2net1_bss, 2),
-                                   net1net2_mci=round(net1net2_mci, 2), net2net1_mci=round(net2net1_mci, 2))
+            return render_template('pairOTUResult.html', genome1=genome1, seeds1=sorted(seeds1_only),
+                                   eles1=json.dumps(metab_net1_json['elements']), genome2=genome2,
+                                   seeds2=sorted(seeds2_only), eles2=json.dumps(metab_net2_json['elements']),
+                                   shared_seeds=sorted(shared_seeds), net1net2_bss=round(net1net2_bss, 2),
+                                   net2net1_bss=round(net2net1_bss, 2), net1net2_mci=round(net1net2_mci, 2),
+                                   net2net1_mci=round(net2net1_mci, 2))
         else:
             flash("Need to enter two OTU id's to compare OTUs")
             return redirect(url_for('welcome_page'))
@@ -92,18 +95,12 @@ def pair_otu_result():
         return redirect(url_for('welcome_page'))
 
 
-@app.route('/house_network/')
-def generate_house_network():
-    house_net = nx.house_graph()
-    house_net_json = cy.from_networkx(house_net)
-    return render_template('simple_cyto.html', eles=json.dumps(house_net_json['elements']))
-
-
 @app.route('/result/single_otu/<int:otu_id>/network/')
 def generate_cyto_network(otu_id):
     genome = session.query(Genome).filter_by(name=otu_id).one()
     metab_net = json.loads(genome.metab_net)
     return render_template('simple_cyto.html', eles=json.dumps(metab_net['elements']))
+
 
 @app.route('/simple/')
 def generate_simple_network():
