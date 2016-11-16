@@ -18,6 +18,12 @@ session = DBSession()
 
 # TODO: Make taxa strings pretty
 # TODO: Figure out a way to add in tree distance between OTUs
+# TODO: Pathway enrichment of seeds
+# TODO: Product seed relationship
+# TODO: Regression of 16S similarity vs competition and cooperation
+# TODO: Is compound bacterial made only
+# TODO: show COs that go into the scores, what are complements and what are they competeing over
+# TODO: add in top bar to link back
 
 
 @app.route('/')

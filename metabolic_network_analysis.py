@@ -2,6 +2,89 @@ from __future__ import division
 
 import networkx as nx
 from collections import defaultdict
+import gzip
+from os import path
+from picrust.util import get_picrust_project_dir, convert_precalc_to_biom
+from parse_KEGG import KEGG_Parser
+import warnings
+
+kegg = KEGG_Parser()
+
+
+def load_data_table(ids_to_load):
+    """Stolen from https://github.com/picrust/picrust/blob/master/scripts/predict_metagenomes.py
+    and modified.
+    Load a data table, detecting gziiped files and subset loading
+    data_table_fp -- path to the input data table
+    load_data_table_in_biom -- if True, load the data table as a BIOM table rather
+    than as tab-delimited
+    suppress_subset_loading -- if True, load the entire table, rather than just
+    ids_of_interest
+    ids_to_load -- a list of OTU ids for which data should be loaded
+    gzipped files are detected based on the '.gz' suffix.
+    """
+    # first two lines adapted from determine_data_table_fp from
+    # https://github.com/picrust/picrust/blob/master/scripts/predict_metagenomes.py
+    # stolen setup from predict_metagenomes.py from PICRUSt
+    precalc_data_dir = path.join(get_picrust_project_dir(), 'picrust', 'data')
+    precalc_file_name = '_'.join(["ko", "13_5", 'precalculated.tab.gz'])
+    data_table_fp = path.join(precalc_data_dir, precalc_file_name)
+
+    if not path.exists(data_table_fp):
+        raise IOError("File " + data_table_fp + " doesn't exist! Did you forget to download it?")
+
+    genome_table_fh = gzip.open(data_table_fp, 'rb')
+    genome_table = convert_precalc_to_biom(genome_table_fh, ids_to_load)
+    return genome_table
+
+
+def make_metabolic_network(genome, filter_very_common=True, filter_common=False, only_giant=False,
+                           min_component_size=None):
+    metab_net = nx.DiGraph()
+    for gene in genome:
+        rxns = kegg.get_rxns_from_ko(gene)
+        if rxns != set():
+            for rxn in rxns:
+                reacts, prods, rev = kegg.get_rxn(rxn)
+                for react in reacts:
+                    if react not in metab_net.nodes():
+                        metab_net.add_node(react)
+                    for prod in prods:
+                        if prod not in metab_net.nodes():
+                            metab_net.add_node(prod)
+                        if (react, prod) not in metab_net.edges():
+                            metab_net.add_edge(react, prod)
+
+    if filter_very_common:
+        try:
+            f = open("cos_to_remove.txt")
+            nodes_to_remove = set([i.strip() for i in f.readlines()])
+            metab_net.remove_nodes_from(nodes_to_remove)
+        except IOError:
+            warnings.warn("cos_to_remove.txt not found. Run determine_cos_to_remove.py to create.")
+
+    if filter_common:
+        for node, degree in metab_net.degree_iter():
+            if degree > 10:  # picked 20 by looking at degree distribution of some otus
+                metab_net.remove_node(node)
+
+    if only_giant:
+        components = list(nx.weakly_connected_components(metab_net))
+        giant_component = set()
+        for component in components:
+            if len(component) > len(giant_component):
+                giant_component = component
+        metab_net.remove_nodes_from(set(metab_net.nodes()) - giant_component)
+
+    if not only_giant and type(min_component_size) == int:
+        components = list(nx.weakly_connected_components(metab_net))
+        nodes_to_remove = list()
+        for component in components:
+            if len(component) < min_component_size:
+                nodes_to_remove += list(component)
+        metab_net.remove_nodes_from(nodes_to_remove)
+
+    return metab_net
 
 
 def determine_seed_set(metab_net):
@@ -10,7 +93,7 @@ def determine_seed_set(metab_net):
     seed_group = 0
     for ssc in sscs:
         in_nodes = set([i[0] for i in metab_net.in_edges(ssc)])
-        if len(in_nodes - ssc) == 0:
+        if len(in_nodes - set(ssc)) == 0:
             for co in ssc:
                 metab_net.node[co]['Seed'] = 1
                 metab_net.node[co]['SeedGroup'] = seed_group
