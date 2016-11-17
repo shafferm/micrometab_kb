@@ -10,6 +10,9 @@
     <script type="text/javascript" src="{{ url_for('static', filename='cytoscape.js') }}"></script>
     <script type="text/javascript" src="{{ url_for('static', filename='cytoscape-ngraph.forcelayout.js') }}"></script>
     <script type="text/javascript">
+        $(document).ready(function(){
+            $('[data-toggle="tooltip"]').tooltip();
+        });
         $(function() {
             var win = $(window);
             win.resize(function() {
@@ -23,6 +26,29 @@
             setTimeout(resize, 0);
             var cy = window.cy = cytoscape({
                 layout: {
+{#                    name: 'cytoscape-ngraph.forcelayout',#}
+{#                    async: {#}
+{#                        maxIterations: 9000,#}
+{#                        stepsPerCycle: 100,#}
+{#                        waitForStep: true#}
+{#                    },#}
+{#                    physics: {#}
+{#                        springLength: 150,#}
+{#                        springCoeff: 0.0008,#}
+{#                        gravity: -1.2,#}
+{#                        theta: 0.8,#}
+{#                        dragCoeff: 0.001,#}
+{#                        timeStep: 20,#}
+{#                        iterations: 10000,#}
+{#                        fit: true,#}
+{#                        stableThreshold: 0.000009#}
+{#                     },#}
+{#                     iterations: 10000,#}
+{#                     refreshInterval: 10000000, // in ms#}
+{#                     refreshIterations: 1000000, // iterations until thread sends an update#}
+{#                     stableThreshold: 2,#}
+{#                     animate: false,#}
+{#                     fit: true#}
                     name: 'cose'
                 },
                 container: document.getElementById('cy'),
@@ -45,6 +71,10 @@
                     }
                 ]
             });
+            $("#fit").click(function() {
+                console.log('cy=', cy);
+                cy.fit();
+            });
         });
     </script>
 </head>
@@ -60,13 +90,14 @@
                 </div>
                 <div class="panel-body">
                     <h4>Taxonomy:</h4>
-                    <p>{{ genome.taxonomy }}</p>
+                    <p data-toggle="tooltip" data-placement="top" title="{{ genome.taxonomy }}">{{ taxa_str }}</p>
                     <h4>NSTI:</h4>
                     <p>{{ genome.nsti }}</p>
                     <h4>Metabolic Network:</h4>
                     <div id="cy-container">
                         <div id="cy"></div>
                     </div>
+                    <button type="button" id="fit" class="btn btn-default">Recenter</button>
                     <h4>Seed Compounds:</h4>
                     <p>
                     {% for i in seeds %}

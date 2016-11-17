@@ -9,6 +9,9 @@
 	<script type="text/javascript" src="{{ url_for('static', filename='bootstrap.min.js') }}"></script>
     <script type="text/javascript" src="{{ url_for('static', filename='cytoscape.js') }}"></script>
     <script type="text/javascript">
+        $(document).ready(function(){
+            $('[data-toggle="tooltip"]').tooltip();
+        });
         $(function() {
             var win = $(window);
             win.resize(function() {
@@ -16,8 +19,8 @@
             });
             function resize() {
                 console.log(win.height(), win.innerHeight());
-                $("#cy-container1").height(win.innerHeight() - 130);
-                $("#cy-container2").height(win.innerHeight() - 130);
+                $("#cy-container1").height(win.innerWidth()/2);
+                $("#cy-container2").height(win.innerWidth()/2);
                 cy1.resize();
                 cy2.resize();
             }
@@ -70,11 +73,19 @@
                     }
                 ]
             });
+            $("#fit1").click(function() {
+                console.log('cy1=', cy1);
+                cy1.fit();
+            });
+            $("#fit2").click(function() {
+                console.log('cy2=', cy2);
+                cy2.fit();
+            });
         });
     </script>
 </head>
 <body>
-    <div class="container">
+    <div class="container-fluid">
         <div class="col-md-12">
             <h1>Pair OTU Result</h1>
         </div>
@@ -85,13 +96,14 @@
                 </div>
                 <div class="panel-body">
                     <h4>Taxonomy:</h4>
-                    <p>{{ genome1.taxonomy }}</p>
+                    <p data-toggle="tooltip" data-placement="top" title="{{ genome1.taxonomy }}">{{ taxa_str1 }}</p>
                     <h4>NSTI:</h4>
                     <p>{{ genome1.nsti }}</p>
                     <h4>Metabolic Network:</h4>
                     <div id="cy-container1">
                         <div id="cy1"></div>
                     </div>
+                    <button type="button" id="fit1" class="btn btn-default">Recenter</button>
                     <h4>Unique Seed Compounds:</h4>
                     <p>
                     {% for i in seeds1 %}
@@ -108,13 +120,14 @@
                 </div>
                 <div class="panel-body">
                     <h4>Taxonomy:</h4>
-                    <p>{{ genome2.taxonomy }}</p>
+                    <p data-toggle="tooltip" data-placement="top" title="{{ genome2.taxonomy }}">{{ taxa_str2 }}</p>
                     <h4>NSTI:</h4>
                     <p>{{ genome2.nsti }}</p>
                     <h4>Metabolic Network:</h4>
                     <div id="cy-container2">
                         <div id="cy2"></div>
                     </div>
+                    <button type="button" id="fit2" class="btn btn-default">Recenter</button>
                     <h4>Unique Seed Compounds:</h4>
                     <p>
                     {% for i in seeds2 %}

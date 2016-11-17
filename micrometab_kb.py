@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.exc import NoResultFound
@@ -26,6 +26,24 @@ session = DBSession()
 # TODO: add in top bar to link back
 
 
+def pretty_taxa(taxa_str):
+    taxa = [i[3:] for i in taxa_str.split('; ') if len(i[3:]) > 0]
+    if len(taxa) > 5:
+        return ' '.join(taxa[5:])
+    elif len(taxa) == 5:
+        return "%s family" % taxa[-1]
+    elif len(taxa) == 4:
+        return "%s order" % taxa[-1]
+    elif len(taxa) == 3:
+        return "%s class" % taxa[-1]
+    elif len(taxa) == 2:
+        return "%s phylum" % taxa[-1]
+    elif len(taxa) == 1:
+        return "%s kingdom" % taxa[-1]
+    else:
+        return "Unclassified"
+
+
 @app.route('/')
 def welcome_page():
     return render_template('index.html')
@@ -44,7 +62,7 @@ def single_otu_result():
             metab_net = cy.to_networkx(metab_net_json)
             metab_net, ss = mna.determine_seed_set(metab_net)
             seeds = [j for i in ss.values() for j in i]
-            return render_template('singleOTUResult.html', genome=genome, seeds=sorted(seeds),
+            return render_template('singleOTUResult.html', genome=genome, taxa_str=pretty_taxa(genome.taxonomy), seeds=sorted(seeds),
                                    eles=json.dumps(metab_net_json['elements']))
         else:
             flash("No OTU id entered for single analysis.")
@@ -60,11 +78,13 @@ def pair_otu_result():
         if request.form['name1'] and request.form['name2']:
             # get genomes from database
             exception = False
+            genome1 = None
             try:
                 genome1 = session.query(Genome).filter_by(name=request.form['name1']).one()
             except NoResultFound:
                 flash("OTU %s not found in the database." % request.form['name1'])
                 exception = True
+            genome2 = None
             try:
                 genome2 = session.query(Genome).filter_by(name=request.form['name2']).one()
             except NoResultFound:
@@ -87,12 +107,12 @@ def pair_otu_result():
             shared_seeds = seeds1 & seeds2
             net1net2_bss, net2net1_bss = mna.calculate_bss(metab_net1, ss1, metab_net2, ss2)
             net1net2_mci, net2net1_mci = mna.calculate_mci(metab_net1, ss1, metab_net2, ss2)
-            return render_template('pairOTUResult.html', genome1=genome1, seeds1=sorted(seeds1_only),
-                                   eles1=json.dumps(metab_net1_json['elements']), genome2=genome2,
-                                   seeds2=sorted(seeds2_only), eles2=json.dumps(metab_net2_json['elements']),
-                                   shared_seeds=sorted(shared_seeds), net1net2_bss=round(net1net2_bss, 2),
-                                   net2net1_bss=round(net2net1_bss, 2), net1net2_mci=round(net1net2_mci, 2),
-                                   net2net1_mci=round(net2net1_mci, 2))
+            return render_template('pairOTUResult.html', genome1=genome1, taxa_str1=pretty_taxa(genome1.taxonomy),
+                                   seeds1=sorted(seeds1_only), eles1=json.dumps(metab_net1_json['elements']),
+                                   genome2=genome2, taxa_str2=pretty_taxa(genome2.taxonomy), seeds2=sorted(seeds2_only),
+                                   eles2=json.dumps(metab_net2_json['elements']), shared_seeds=sorted(shared_seeds),
+                                   net1net2_bss=round(net1net2_bss, 2), net2net1_bss=round(net2net1_bss, 2),
+                                   net1net2_mci=round(net1net2_mci, 2), net2net1_mci=round(net2net1_mci, 2))
         else:
             flash("Need to enter two OTU id's to compare OTUs")
             return redirect(url_for('welcome_page'))
