@@ -5,16 +5,14 @@ from collections import defaultdict
 import gzip
 from os import path
 from picrust.util import get_picrust_project_dir, convert_precalc_to_biom
-from parse_KEGG import KEGG_Parser
 import warnings
-
-kegg = KEGG_Parser()
+import requests
 
 
 def load_data_table(ids_to_load):
     """Stolen from https://github.com/picrust/picrust/blob/master/scripts/predict_metagenomes.py
     and modified.
-    Load a data table, detecting gziiped files and subset loading
+    Load a data table, detecting gziped files and subset loading
     data_table_fp -- path to the input data table
     load_data_table_in_biom -- if True, load the data table as a BIOM table rather
     than as tab-delimited
@@ -38,14 +36,58 @@ def load_data_table(ids_to_load):
     return genome_table
 
 
+def get_kegg_rxns_from_gene(gene):
+    r = requests.get('http://togows.org/entry/kegg-genes/%s/dblinks.json' % gene)
+    if r.status_code == 200:
+        if len(r.json()) == 0:
+            warnings.warn("No gene found with id %s" % gene)
+            return list()
+        else:
+            try:
+                return r.json()[0]['RN']
+            except KeyError:
+                return list()
+    else:
+        warnings.warn("Connection to kegg via togows not able to be established.")
+        return list()
+
+
+def get_kegg_rxn(rxn):
+    r = requests.get('http://togows.org/entry/kegg-reaction/%s/equation.json' % rxn)
+    if r.status_code == 200:
+        if len(r.json()) == 0:
+            warnings.warn("No reaction found with id %s" % rxn)
+            return list(), list(), False
+        else:
+            eq_str = r.json()[0]
+            equ = eq_str.split('=>')
+            if equ[0][-1] == '<':
+                rev = True
+                equ[0] = equ[0][:-1]
+            else:
+                rev = False
+            reacts = list()
+            for part in equ[0].strip().split():
+                if part[0] == 'C' or part[0] == 'G':
+                    reacts.append(part[:6])
+            prods = list()
+            for part in equ[1].strip().split():
+                if part[0] == 'C' or part[0] == 'G':
+                    prods.append(part[:6])
+            return reacts, prods, rev
+    else:
+        warnings.warn("Connection to kegg via togows not able to be established")
+        return list(), list(), False
+
+
 def make_metabolic_network(genome, filter_very_common=True, filter_common=False, only_giant=False,
                            min_component_size=None):
     metab_net = nx.DiGraph()
     for gene in genome:
-        rxns = kegg.get_rxns_from_ko(gene)
+        rxns = get_kegg_rxns_from_gene(gene)
         if rxns != set():
             for rxn in rxns:
-                reacts, prods, rev = kegg.get_rxn(rxn)
+                reacts, prods, rev = get_kegg_rxn(rxn)
                 for react in reacts:
                     if react not in metab_net.nodes():
                         metab_net.add_node(react)

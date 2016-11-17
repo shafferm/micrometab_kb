@@ -5,7 +5,7 @@ from database_setup import Base, Genome
 import multiprocessing
 import json
 from py2cytoscape import util as cy
-from metabolic_network_analysis import load_data_table, make_metabolic_network
+import metabolic_network_analysis as mna
 
 engine = create_engine('sqlite:///gg_genomes.db')
 Base.metadata.bind = engine
@@ -26,16 +26,16 @@ def breakup_list(l, n):
 
 
 def generate_genome(otus):
-    genome_table = load_data_table([i[0] for i in otus])
+    genome_table = mna.load_data_table([i[0] for i in otus])
     genomes = list()
     for otu_id, taxonomy in otus:
         nsti = genome_table.metadata(otu_id)['NSTI']
         genome = genome_table.ids(axis="observation")[genome_table.data(otu_id) > 0]
         genome = [str(i) for i in genome]
-        metab_network = make_metabolic_network(genome)
+        metab_network = mna.make_metabolic_network(genome)
         metab_network_json = cy.from_networkx(metab_network)
         genome = Genome(name=int(otu_id), nsti=float(nsti), metab_net=json.dumps(metab_network_json),
-                        genome=str(genome), taxonomy=taxonomy)
+                        genome=','.join(genome), taxonomy=taxonomy)
         genomes.append(genome)
     return genomes
 
@@ -48,7 +48,12 @@ def add_to_db(chunks):
             print genome.name
 
 
-def main(args):
+def main():
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument("--gg_loc", help="greengenes taxonomy location", default=GG_LOC)
+    parser.add_argument("--nprocs", help="number of processors", type=int, default=procs)
+    args = parser.parse_args()
+
     gg_genomes = {i.strip().split('\t')[0]: i.strip().split('\t')[1] for i in open(args.gg_loc).readlines()[:100]}
 
     chunks = breakup_list(gg_genomes.items(), chunk_size)
@@ -57,13 +62,6 @@ def main(args):
     pool.close()
     pool.join()
 
-    # for chunk in chunks(gg_genomes.items(), chunk_size):
-    #     generate_genome(chunk)
-
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("--gg_loc", help="greengenes taxonomy location", default=GG_LOC)
-    parser.add_argument("--nprocs", help="number of processors", default=procs)
-    args = parser.parse_args()
-    main(args)
+    main()

@@ -16,7 +16,6 @@ Base.metadata.bind = engine
 DBSession = sessionmaker(bind=engine)
 session = DBSession()
 
-# TODO: Make taxa strings pretty
 # TODO: Figure out a way to add in tree distance between OTUs
 # TODO: Pathway enrichment of seeds
 # TODO: Product seed relationship
@@ -62,8 +61,8 @@ def single_otu_result():
             metab_net = cy.to_networkx(metab_net_json)
             metab_net, ss = mna.determine_seed_set(metab_net)
             seeds = [j for i in ss.values() for j in i]
-            return render_template('singleOTUResult.html', genome=genome, taxa_str=pretty_taxa(genome.taxonomy), seeds=sorted(seeds),
-                                   eles=json.dumps(metab_net_json['elements']))
+            return render_template('singleOTUResult.html', genome=genome, taxa_str=pretty_taxa(genome.taxonomy),
+                                   seeds=sorted(seeds), eles=json.dumps(metab_net_json['elements']))
         else:
             flash("No OTU id entered for single analysis.")
             return redirect(url_for('welcome_page'))
