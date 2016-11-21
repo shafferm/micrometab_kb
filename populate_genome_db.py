@@ -60,7 +60,7 @@ def main():
 
     gg_genomes = {i.strip().split('\t')[0]: i.strip().split('\t')[1] for i in open(args.gg_loc).readlines()}
 
-    chunks = breakup_list(gg_genomes.items(), chunk_size)
+    chunks = breakup_list(gg_genomes.items(), args.chunk_size)
     pool = multiprocessing.Pool(args.nprocs)
     pool.map_async(generate_genome, chunks, callback=add_to_db)
     pool.close()
