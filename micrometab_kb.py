@@ -3,7 +3,6 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.exc import NoResultFound
 from database_setup import Genome, Base
-import networkx as nx
 import json
 from py2cytoscape import util as cy
 import metabolic_network_analysis as mna
@@ -23,6 +22,7 @@ session = DBSession()
 # TODO: Is compound bacterial made only
 # TODO: show COs that go into the scores, what are complements and what are they competeing over
 # TODO: add in top bar to link back
+# TODO: make a setup.py that downloads greengenes and installs dependencies
 
 
 def pretty_taxa(taxa_str):
@@ -119,19 +119,6 @@ def pair_otu_result():
         flash("How did you get to pairs then?")
         return redirect(url_for('welcome_page'))
 
-
-@app.route('/result/single_otu/<int:otu_id>/network/')
-def generate_cyto_network(otu_id):
-    genome = session.query(Genome).filter_by(name=otu_id).one()
-    metab_net = json.loads(genome.metab_net)
-    return render_template('simple_cyto.html', eles=json.dumps(metab_net['elements']))
-
-
-@app.route('/simple/')
-def generate_simple_network():
-    house_net = nx.house_graph()
-    house_net_json = cy.from_networkx(house_net)
-    return render_template("simple_cyto.html", eles=json.dumps(house_net_json['elements']))
 
 if __name__ == '__main__':
     app.secret_key = 'super_secret_key'

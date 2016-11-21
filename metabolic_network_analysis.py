@@ -7,6 +7,7 @@ from os import path
 from picrust.util import get_picrust_project_dir, convert_precalc_to_biom
 import warnings
 import requests
+from multiprocessing.pool import ThreadPool
 
 
 def load_data_table(ids_to_load):
@@ -36,66 +37,89 @@ def load_data_table(ids_to_load):
     return genome_table
 
 
+genes_seen = {}
 def get_kegg_rxns_from_gene(gene):
-    r = requests.get('http://togows.org/entry/kegg-genes/%s/dblinks.json' % gene)
-    if r.status_code == 200:
-        if len(r.json()) == 0:
-            warnings.warn("No gene found with id %s" % gene)
-            return list()
-        else:
-            try:
-                return r.json()[0]['RN']
-            except KeyError:
+    global genes_seen
+    if gene in genes_seen:
+        return genes_seen[gene]
+    else:
+        r = requests.get('http://togows.org/entry/kegg-genes/%s/dblinks.json' % gene)
+        if r.status_code == 200:
+            if len(r.json()) == 0:
+                warnings.warn("No gene found with id %s" % gene)
                 return list()
-    else:
-        warnings.warn("Connection to kegg via togows not able to be established.")
-        return list()
-
-
-def get_kegg_rxn(rxn):
-    r = requests.get('http://togows.org/entry/kegg-reaction/%s/equation.json' % rxn)
-    if r.status_code == 200:
-        if len(r.json()) == 0:
-            warnings.warn("No reaction found with id %s" % rxn)
-            return list(), list(), False
-        else:
-            eq_str = r.json()[0]
-            equ = eq_str.split('=>')
-            if equ[0][-1] == '<':
-                rev = True
-                equ[0] = equ[0][:-1]
             else:
-                rev = False
-            reacts = list()
-            for part in equ[0].strip().split():
-                if part[0] == 'C' or part[0] == 'G':
-                    reacts.append(part[:6])
-            prods = list()
-            for part in equ[1].strip().split():
-                if part[0] == 'C' or part[0] == 'G':
-                    prods.append(part[:6])
-            return reacts, prods, rev
+                try:
+                    genes_seen[gene] = r.json()[0]['RN']
+                    return r.json()[0]['RN']
+                except KeyError:
+                    genes_seen[gene] = list()
+                    return list()
+        else:
+            warnings.warn("Connection to kegg via togows not able to be established.")
+            return list()
+
+rxns_seen = {}
+def get_kegg_rxn(rxn):
+    global rxns_seen
+    if rxn in rxns_seen:
+        return rxns_seen[rxn]
     else:
-        warnings.warn("Connection to kegg via togows not able to be established")
-        return list(), list(), False
+        r = requests.get('http://togows.org/entry/kegg-reaction/%s/equation.json' % rxn)
+        if r.status_code == 200:
+            if len(r.json()) == 0:
+                warnings.warn("No reaction found with id %s" % rxn)
+                rxns_seen[rxn] = list(), list(), False
+                return list(), list(), False
+            else:
+                eq_str = r.json()[0]
+                equ = eq_str.split('=>')
+                if equ[0][-1] == '<':
+                    rev = True
+                    equ[0] = equ[0][:-1]
+                else:
+                    rev = False
+                reacts = list()
+                for part in equ[0].strip().split():
+                    if part[0] == 'C' or part[0] == 'G':
+                        reacts.append(part[:6])
+                prods = list()
+                for part in equ[1].strip().split():
+                    if part[0] == 'C' or part[0] == 'G':
+                        prods.append(part[:6])
+                rxns_seen[rxn] = reacts, prods, rev
+                return reacts, prods, rev
+        else:
+            warnings.warn("Connection to kegg via togows not able to be established")
+            return list(), list(), False
 
 
 def make_metabolic_network(genome, filter_very_common=True, filter_common=False, only_giant=False,
                            min_component_size=None):
+    reactome = list()
+    pool = ThreadPool(processes=20)
+    pool.map_async(get_kegg_rxns_from_gene, genome, callback=reactome.extend)
+    pool.close()
+    pool.join()
+    reactome = set([j for i in reactome for j in i])
+
+    rxns = list()
+    pool = ThreadPool(processes=20)
+    pool.map_async(get_kegg_rxn, reactome, callback=rxns.extend)
+    pool.close()
+    pool.join()
+    rxns = [j for i in rxns for j in i]
+
     metab_net = nx.DiGraph()
-    for gene in genome:
-        rxns = get_kegg_rxns_from_gene(gene)
-        if rxns != set():
-            for rxn in rxns:
-                reacts, prods, rev = get_kegg_rxn(rxn)
-                for react in reacts:
-                    if react not in metab_net.nodes():
-                        metab_net.add_node(react)
-                    for prod in prods:
-                        if prod not in metab_net.nodes():
-                            metab_net.add_node(prod)
-                        if (react, prod) not in metab_net.edges():
-                            metab_net.add_edge(react, prod)
+    for reacts, prods, rev in rxns:
+        for react in reacts:
+            if react not in metab_net.nodes():
+                metab_net.add_node(react)
+            for prod in prods:
+                if prod not in metab_net.nodes():
+                    metab_net.add_node(prod)
+                if (react, prod) not in metab_net.edges():
+                    metab_net.add_edge(react, prod)
 
     if filter_very_common:
         try:
