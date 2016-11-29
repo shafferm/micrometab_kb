@@ -59,6 +59,36 @@ def get_kegg_rxns_from_gene(gene):
             warnings.warn("Connection to kegg via togows not able to be established.")
             return list()
 
+
+def get_kegg_rxns_from_gene2(gene):
+    global genes_seen
+    if gene in genes_seen:
+        return genes_seen[gene]
+    else:
+        r = requests.get('http://rest.kegg.jp/get/%s' % gene)
+        if r.status_code == 200:
+            if len(r.text) == 0:
+                warnings.warn("No gene found with id %s" % gene)
+                return list()
+            else:
+                rxn_line = [i for i in r.text.split('\n') if "RN:" in i.strip().split()]
+                if len(rxn_line) == 1:
+                    rxns = rxn_line[0][12:].split()[1:]
+                    genes_seen[gene] = rxns
+                    return rxns
+                elif len(rxn_line) == 0:
+                    return list()
+                else:
+                    warnings.warn("More than one reaction DBLINKS RN for %s" % gene)
+                    return list()
+        elif r.status_code == 404:
+            warnings.warn("Connection to kegg not able to be established.")
+            return list()
+        else:
+            warnings.warn("No gene found with id %s" % gene)
+            return list()
+
+
 rxns_seen = {}
 def get_kegg_rxn(rxn):
     global rxns_seen
@@ -94,22 +124,79 @@ def get_kegg_rxn(rxn):
             return list(), list(), False
 
 
-def make_metabolic_network(genome, filter_very_common=True, filter_common=False, only_giant=False,
-                           min_component_size=None):
+def get_kegg_rxn2(rxn):
+    global rxns_seen
+    if rxn in rxns_seen:
+        return rxns_seen[rxn]
+    else:
+        r = requests.get('http://rest.kegg.jp/get/%s' % rxn)
+        if r.status_code == 200:
+            if len(r.text) == 0:
+                warnings.warn("No reaction found with id %s" % rxn)
+                rxns_seen[rxn] = list(), list(), False
+                return list(), list(), False
+            else:
+                equ_line = [i for i in r.text.split('\n') if i.startswith('EQUATION')][0]
+                equ_str = ' '.join(equ_line.split()[1:])
+                equ = equ_str.split('=>')
+                if equ[0][-1] == '<':
+                    rev = True
+                    equ[0] = equ[0][:-1]
+                else:
+                    rev = False
+                reacts = list()
+                for part in equ[0].strip().split():
+                    if part[0] == 'C' or part[0] == 'G':
+                        reacts.append(part[:6])
+                prods = list()
+                for part in equ[1].strip().split():
+                    if part[0] == 'C' or part[0] == 'G':
+                        prods.append(part[:6])
+                rxns_seen[rxn] = reacts, prods, rev
+                return reacts, prods, rev
+        else:
+            warnings.warn("Connection to kegg via togows not able to be established")
+            return list(), list(), False
+
+
+def get_reactome(genome, threads=20):
     reactome = list()
-    pool = ThreadPool(processes=20)
+    pool = ThreadPool(processes=threads)
     pool.map_async(get_kegg_rxns_from_gene, genome, callback=reactome.extend)
     pool.close()
     pool.join()
-    reactome = set([j for i in reactome for j in i])
+    return set([j for i in reactome for j in i])
 
-    rxns = list()
-    pool = ThreadPool(processes=20)
-    pool.map_async(get_kegg_rxn, reactome, callback=rxns.extend)
+
+def get_reactome2(genome, threads=20):
+    reactome = list()
+    pool = ThreadPool(processes=threads)
+    pool.map_async(get_kegg_rxns_from_gene2, genome, callback=reactome.extend)
     pool.close()
     pool.join()
-    rxns = [j for i in rxns for j in i]
+    return set([j for i in reactome for j in i])
 
+
+def get_rxns(reactome, threads=20):
+    rxns = list()
+    pool = ThreadPool(processes=threads)
+    pool.map_async(get_kegg_rxn, reactome, callback=rxns.append)
+    pool.close()
+    pool.join()
+    return [j for i in rxns for j in i]
+
+
+def get_rxns2(reactome, threads=20):
+    rxns = list()
+    pool = ThreadPool(processes=threads)
+    pool.map_async(get_kegg_rxn2, reactome, callback=rxns.append)
+    pool.close()
+    pool.join()
+    return [j for i in rxns for j in i]
+
+
+def make_metabolic_network(rxns, filter_very_common=True, filter_common=False, only_giant=False,
+                           min_component_size=None):
     metab_net = nx.DiGraph()
     for reacts, prods, rev in rxns:
         for react in reacts:

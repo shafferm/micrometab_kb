@@ -33,7 +33,9 @@ def generate_genome(otus):
         nsti = genome_table.metadata(otu_id)['NSTI']
         genome = genome_table.ids(axis="observation")[genome_table.data(otu_id) > 0]
         genome = [str(i) for i in genome]
-        metab_network = mna.make_metabolic_network(genome, only_giant=True)
+        reactome = mna.get_reactome(genome)
+        rxns = mna.get_rxns(reactome)
+        metab_network = mna.make_metabolic_network(rxns, only_giant=True)
         metab_network_json = cy.from_networkx(metab_network)
         genome = Genome(name=int(otu_id), nsti=float(nsti), metab_net=json.dumps(metab_network_json),
                         genome=','.join(genome), taxonomy=taxonomy)
@@ -54,11 +56,16 @@ def main():
     parser.add_argument("--gg_loc", help="greengenes taxonomy location", default=GG_LOC)
     parser.add_argument("--nprocs", help="number of processors", type=int, default=procs)
     parser.add_argument("--chunk_size", help="size of chunks to analyze per processor", type=int, default=chunk_size)
+    parser.add_argument("--subset", help="size of subset of gg_genomes to analyze", type=int)
     args = parser.parse_args()
 
     start = datetime.now()
 
-    gg_genomes = {i.strip().split('\t')[0]: i.strip().split('\t')[1] for i in open(args.gg_loc).readlines()}
+    if args.subset is None:
+        gg_genomes = {i.strip().split('\t')[0]: i.strip().split('\t')[1] for i in open(args.gg_loc).readlines()}
+    else:
+        gg_genomes = {i.strip().split('\t')[0]: i.strip().split('\t')[1]
+                      for i in open(args.gg_loc).readlines()[:args.subset]}
 
     chunks = breakup_list(gg_genomes.items(), args.chunk_size)
     pool = multiprocessing.Pool(args.nprocs)
