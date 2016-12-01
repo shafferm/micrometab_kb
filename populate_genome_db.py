@@ -7,6 +7,7 @@ import json
 from py2cytoscape import util as cy
 import metabolic_network_analysis as mna
 from datetime import datetime
+import os
 
 engine = create_engine('sqlite:///gg_genomes.db')
 Base.metadata.bind = engine
@@ -27,15 +28,21 @@ def breakup_list(l, n):
 
 
 def generate_genome(otus):
+    print os.getpid(), "Got here"
     genome_table = mna.load_data_table([i[0] for i in otus])
+    print os.getpid(), genome_table.shape
     genomes = list()
     for otu_id, taxonomy in otus:
+        print os.getpid(), otu_id
         nsti = genome_table.metadata(otu_id)['NSTI']
         genome = genome_table.ids(axis="observation")[genome_table.data(otu_id) > 0]
         genome = [str(i) for i in genome]
+        print os.getpid(), otu_id, "genome length", len(genome)
         reactome = mna.get_reactome(genome)
         rxns = mna.get_rxns(reactome)
+        print os.getpid(), otu_id, "reaction count", len(rxns)
         metab_network = mna.make_metabolic_network(rxns, only_giant=True)
+        print os.getpid(), otu_id, "network made"
         metab_network_json = cy.from_networkx(metab_network)
         genome = Genome(name=int(otu_id), nsti=float(nsti), metab_net=json.dumps(metab_network_json),
                         genome=','.join(genome), taxonomy=taxonomy)
@@ -43,7 +50,14 @@ def generate_genome(otus):
     return genomes
 
 
-def add_to_db(chunks):
+def add_chunk_to_db(chunk):
+    for genome in chunk:
+        session.add(genome)
+        session.commit()
+        print genome.name
+
+
+def add_chunks_to_db(chunks):
     for chunk in chunks:
         for genome in chunk:
             session.add(genome)
@@ -69,12 +83,14 @@ def main():
 
     chunks = breakup_list(gg_genomes.items(), args.chunk_size)
     pool = multiprocessing.Pool(args.nprocs)
-    pool.map_async(generate_genome, chunks, callback=add_to_db)
+    # pool.map_async(generate_genome, chunks, callback=add_chunks_to_db)
+    for chunk in chunks:
+        pool.apply_async(generate_genome, (chunk,), callback=add_chunk_to_db)
     pool.close()
     pool.join()
 
     finish = datetime.now()
-    print start, finish, finish-start
+    print finish-start
 
 
 if __name__ == "__main__":
