@@ -28,9 +28,7 @@ def breakup_list(l, n):
 
 
 def generate_genome(otus):
-    print os.getpid(), "Got here"
     genome_table = mna.load_data_table([i[0] for i in otus])
-    print os.getpid(), genome_table.shape
     genomes = list()
     for otu_id, taxonomy in otus:
         print os.getpid(), otu_id

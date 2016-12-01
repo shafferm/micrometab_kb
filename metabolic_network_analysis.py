@@ -47,6 +47,7 @@ def get_kegg_rxns_from_gene(gene):
         if r.status_code == 200:
             if len(r.json()) == 0:
                 warnings.warn("No gene found with id %s" % gene)
+                genes_seen[gene] = list()
                 return list()
             else:
                 try:
