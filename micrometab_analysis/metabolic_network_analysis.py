@@ -8,7 +8,9 @@ from picrust.util import get_picrust_project_dir, convert_precalc_to_biom
 import warnings
 import requests
 from multiprocessing.pool import ThreadPool
+from micrometab_analysis.parse_KEGG import KEGGParser
 
+kegg = None
 
 def load_data_table(ids_to_load):
     """Stolen from https://github.com/picrust/picrust/blob/master/scripts/predict_metagenomes.py
@@ -38,7 +40,7 @@ def load_data_table(ids_to_load):
 
 
 genes_seen = {}
-def get_kegg_rxns_from_gene(gene):
+def get_kegg_rxns_from_gene_togows(gene):
     global genes_seen
     if gene in genes_seen:
         return genes_seen[gene]
@@ -61,7 +63,7 @@ def get_kegg_rxns_from_gene(gene):
             return list()
 
 
-def get_kegg_rxns_from_gene2(gene):
+def get_kegg_rxns_from_gene_kegg(gene):
     global genes_seen
     if gene in genes_seen:
         return genes_seen[gene]
@@ -91,7 +93,7 @@ def get_kegg_rxns_from_gene2(gene):
 
 
 rxns_seen = {}
-def get_kegg_rxn(rxn):
+def get_kegg_rxn_togows(rxn):
     global rxns_seen
     if rxn in rxns_seen:
         return rxns_seen[rxn]
@@ -125,7 +127,7 @@ def get_kegg_rxn(rxn):
             return list(), list(), False
 
 
-def get_kegg_rxn2(rxn):
+def get_kegg_rxn_kegg(rxn):
     global rxns_seen
     if rxn in rxns_seen:
         return rxns_seen[rxn]
@@ -160,37 +162,61 @@ def get_kegg_rxn2(rxn):
             return list(), list(), False
 
 
-def get_reactome(genome, threads=20):
+def get_reactome_local(genome, loc=None):
+    global kegg
+    if kegg is None:
+        if loc is None:
+            raise ValueError("Need to provide location for database files if using local")
+        kegg = KEGGParser(loc)
+    reactome = list()
+    for gene in genome:
+        reactome.extend(kegg.get_rxns_from_ko(gene))
+    return set(reactome)
+
+
+def get_reactome_togows(genome, threads=20):
     reactome = list()
     pool = ThreadPool(processes=threads)
-    pool.map_async(get_kegg_rxns_from_gene, genome, callback=reactome.extend)
+    pool.map_async(get_kegg_rxns_from_gene_togows, genome, callback=reactome.extend)
     pool.close()
     pool.join()
     return set([j for i in reactome for j in i])
 
 
-def get_reactome2(genome, threads=20):
+def get_reactome_kegg(genome, threads=20):
     reactome = list()
     pool = ThreadPool(processes=threads)
-    pool.map_async(get_kegg_rxns_from_gene2, genome, callback=reactome.extend)
+    pool.map_async(get_kegg_rxns_from_gene_kegg, genome, callback=reactome.extend)
     pool.close()
     pool.join()
     return set([j for i in reactome for j in i])
 
 
-def get_rxns(reactome, threads=20):
+def get_rxns_local(reactome, loc=None):
+    global kegg
+    if kegg is None:
+        if loc is None:
+            raise ValueError("Need to provide location for database files if using local")
+        kegg = KEGGParser(loc)
+    rxns = list()
+    for rxn in reactome:
+        rxns.append(kegg.get_rxn(rxn))
+    return rxns
+
+
+def get_rxns_togows(reactome, threads=20):
     rxns = list()
     pool = ThreadPool(processes=threads)
-    pool.map_async(get_kegg_rxn, reactome, callback=rxns.append)
+    pool.map_async(get_kegg_rxn_togows, reactome, callback=rxns.append)
     pool.close()
     pool.join()
     return [j for i in rxns for j in i]
 
 
-def get_rxns2(reactome, threads=20):
+def get_rxns_kegg(reactome, threads=20):
     rxns = list()
     pool = ThreadPool(processes=threads)
-    pool.map_async(get_kegg_rxn2, reactome, callback=rxns.append)
+    pool.map_async(get_kegg_rxn_kegg, reactome, callback=rxns.append)
     pool.close()
     pool.join()
     return [j for i in rxns for j in i]

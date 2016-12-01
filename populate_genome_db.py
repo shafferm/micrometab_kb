@@ -1,13 +1,15 @@
 import argparse
+import json
+import multiprocessing
+import os
+from datetime import datetime
+
+from py2cytoscape import util as cy
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+
 from database_setup import Base, Genome
-import multiprocessing
-import json
-from py2cytoscape import util as cy
-import metabolic_network_analysis as mna
-from datetime import datetime
-import os
+from micrometab_analysis import metabolic_network_analysis as mna
 
 engine = create_engine('sqlite:///gg_genomes.db')
 Base.metadata.bind = engine
@@ -17,6 +19,7 @@ session = DBSession()
 
 
 GG_LOC = "/Users/shafferm/lab/HIV_5runs/qiime_files/99_otu_taxonomy.txt"
+KEGG_LOC = "/Users/shafferm/KEGG_late_june2011_snapshot/"
 chunk_size = 10000
 procs = 3
 
@@ -27,7 +30,7 @@ def breakup_list(l, n):
         yield l[i:i + n]
 
 
-def generate_genome(otus):
+def generate_genome_local(otus, loc=None):
     genome_table = mna.load_data_table([i[0] for i in otus])
     genomes = list()
     for otu_id, taxonomy in otus:
@@ -36,8 +39,9 @@ def generate_genome(otus):
         genome = genome_table.ids(axis="observation")[genome_table.data(otu_id) > 0]
         genome = [str(i) for i in genome]
         print os.getpid(), otu_id, "genome length", len(genome)
-        reactome = mna.get_reactome(genome)
-        rxns = mna.get_rxns(reactome)
+        reactome = mna.get_reactome_local(genome, loc)
+        print os.getpid(), otu_id, "reactome length", len(reactome)
+        rxns = mna.get_rxns_local(reactome, loc)
         print os.getpid(), otu_id, "reaction count", len(rxns)
         metab_network = mna.make_metabolic_network(rxns, only_giant=True)
         print os.getpid(), otu_id, "network made"
@@ -66,6 +70,7 @@ def add_chunks_to_db(chunks):
 def main():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("--gg_loc", help="greengenes taxonomy location", default=GG_LOC)
+    parser.add_argument("--database_loc", help="location of kegg database", default=KEGG_LOC)
     parser.add_argument("--nprocs", help="number of processors", type=int, default=procs)
     parser.add_argument("--chunk_size", help="size of chunks to analyze per processor", type=int, default=chunk_size)
     parser.add_argument("--subset", help="size of subset of gg_genomes to analyze", type=int)
@@ -83,7 +88,7 @@ def main():
     pool = multiprocessing.Pool(args.nprocs)
     # pool.map_async(generate_genome, chunks, callback=add_chunks_to_db)
     for chunk in chunks:
-        pool.apply_async(generate_genome, (chunk,), callback=add_chunk_to_db)
+        pool.apply_async(generate_genome_local, (chunk, args.database_loc), callback=add_chunk_to_db)
     pool.close()
     pool.join()
 
