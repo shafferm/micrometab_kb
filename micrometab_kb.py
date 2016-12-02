@@ -1,11 +1,13 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
+import json
+
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
+from py2cytoscape import util as cy
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.exc import NoResultFound
+
 from database_setup import Genome, Base
-import json
-from py2cytoscape import util as cy
-import metabolic_network_analysis as mna
+from micrometab_analysis import metabolic_network_analysis as mna
 
 app = Flask(__name__)
 
@@ -22,7 +24,9 @@ session = DBSession()
 # TODO: Is compound bacterial made only
 # TODO: show COs that go into the scores, what are complements and what are they competeing over
 # TODO: add in top bar to link back
-# TODO: make a setup.py that downloads greengenes and installs dependencies
+# TODO: make a setup.py that downloads greengenes (and picrust?) and installs dependencies
+# TODO: add human to database, other host organisms?
+# TODO: add human vs bacterial or both generated
 
 
 def pretty_taxa(taxa_str):
@@ -118,6 +122,16 @@ def pair_otu_result():
     else:
         flash("How did you get to pairs then?")
         return redirect(url_for('welcome_page'))
+
+
+@app.route('/get/<int:otu_id>')
+def get_otu_json(otu_id):
+    try:
+        genome = session.query(Genome).filter_by(name=otu_id).one()
+    except NoResultFound:
+        flash("OTU id %s not in database." % request.form['name'])
+        return redirect(url_for('welcome_page'))
+    return jsonify(Genome=genome.serialize)
 
 
 if __name__ == '__main__':

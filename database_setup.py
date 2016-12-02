@@ -15,6 +15,16 @@ class Genome(Base):
     metab_net = Column(String(100000))
     genome = Column(String(1000))
 
+    @property
+    def serialize(self):
+        return {
+            'name': self.name,
+            'taxonomy': self.taxonomy,
+            'nsti': self.nsti,
+            'metab_net': self.metab_net,
+            'genome': self.genome
+        }
+
 
 engine = create_engine('sqlite:///gg_genomes.db')
 Base.metadata.create_all(engine)
