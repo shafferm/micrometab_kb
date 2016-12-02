@@ -22,11 +22,12 @@ session = DBSession()
 # TODO: Product seed relationship
 # TODO: Regression of 16S similarity vs competition and cooperation
 # TODO: Is compound bacterial made only
-# TODO: show COs that go into the scores, what are complements and what are they competeing over
 # TODO: add in top bar to link back
 # TODO: make a setup.py that downloads greengenes (and picrust?) and installs dependencies
 # TODO: add human to database, other host organisms?
 # TODO: add human vs bacterial or both generated
+# TODO: extract micrometab_analysis to it's own package
+# TODO: add tooltip explaining MCI and BSS
 
 
 def pretty_taxa(taxa_str):
@@ -106,8 +107,14 @@ def pair_otu_result():
             seeds1 = set([j for i in ss1.values() for j in i])
             seeds2 = set([j for i in ss2.values() for j in i])
             seeds1_only = seeds1-seeds2
+            if seeds1_only == set():
+                seeds1_only = [None]
             seeds2_only = seeds2-seeds1
+            if seeds2_only == set():
+                seeds2_only = [None]
             shared_seeds = seeds1 & seeds2
+            otu1_seeds_otu2_complement = seeds1_only & set(metab_net2.nodes())
+            otu2_seeds_otu1_complement = seeds2_only & set(metab_net1.nodes())
             net1net2_bss, net2net1_bss = mna.calculate_bss(metab_net1, ss1, metab_net2, ss2)
             net1net2_mci, net2net1_mci = mna.calculate_mci(metab_net1, ss1, metab_net2, ss2)
             return render_template('pairOTUResult.html', genome1=genome1, taxa_str1=pretty_taxa(genome1.taxonomy),
@@ -115,7 +122,9 @@ def pair_otu_result():
                                    genome2=genome2, taxa_str2=pretty_taxa(genome2.taxonomy), seeds2=sorted(seeds2_only),
                                    eles2=json.dumps(metab_net2_json['elements']), shared_seeds=sorted(shared_seeds),
                                    net1net2_bss=round(net1net2_bss, 2), net2net1_bss=round(net2net1_bss, 2),
-                                   net1net2_mci=round(net1net2_mci, 2), net2net1_mci=round(net2net1_mci, 2))
+                                   net1net2_mci=round(net1net2_mci, 2), net2net1_mci=round(net2net1_mci, 2),
+                                   otu1_seeds_otu2_complement=otu1_seeds_otu2_complement,
+                                   otu2_seeds_otu1_complement=otu2_seeds_otu1_complement)
         else:
             flash("Need to enter two OTU id's to compare OTUs")
             return redirect(url_for('welcome_page'))

@@ -155,6 +155,17 @@
                     <h4>MCI Scores:</h4>
                     <p>{{ genome1.name }} BSS with respect to {{ genome2.name }}: {{ net1net2_mci }}</p>
                     <p>{{ genome2.name }} BSS with respect to {{ genome1.name }}: {{ net2net1_mci }}</p>
+                    <h4>{{ genome1.name }} seeds produced by {{ genome2.name }}</h4>
+                    <p>
+                        {% for i in otu1_seeds_otu2_complement %}
+                            <a href="http://www.genome.jp/dbget-bin/www_bget?{{ i }}">{{ i }}</a>
+                        {% endfor %}
+                    <h4>{{ genome2.name }} seeds produced by {{ genome1.name }}</h4>
+                    <p>
+                        {% for i in otu2_seeds_otu1_complement %}
+                            <a href="http://www.genome.jp/dbget-bin/www_bget?{{ i }}">{{ i }}</a>
+                        {% endfor %}
+                    </p>
                 </div>
             </div>
         </div>
