@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Single OTU Result</title>
+    <link rel=stylesheet type=text/css href="{{ url_for('static', filename='style.css') }}">
     <link rel=stylesheet type=text/css href="{{ url_for('static', filename='bootstrap.min.css') }}">
     <link rel=stylesheet type=text/css href="{{ url_for('static', filename='style.css') }}">
 	<script type="text/javascript" src="{{ url_for('static', filename='jquery-3.1.1.min.js') }}"></script>
@@ -79,6 +80,9 @@
     </script>
 </head>
 <body>
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+        <a class="navbar-brand" href="{{ url_for('welcome_page') }}">Micrometab KB</a>
+    </nav>
     <div class="container">
         <div class="col-md-12">
             <h1>Single OTU Analysis</h1>

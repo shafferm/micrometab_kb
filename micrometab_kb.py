@@ -22,7 +22,6 @@ session = DBSession()
 # TODO: Product seed relationship
 # TODO: Regression of 16S similarity vs competition and cooperation
 # TODO: Is compound bacterial made only
-# TODO: add in top bar to link back
 # TODO: make a setup.py that downloads greengenes (and picrust?) and installs dependencies
 # TODO: add human to database, other host organisms?
 # TODO: add human vs bacterial or both generated

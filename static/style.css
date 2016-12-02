@@ -15,3 +15,15 @@
   border-width: 1px;
   height: 100%;
 }
+
+.navbar-inverse {
+    color: whitesmoke;
+}
+
+.container {
+    padding-top: 50px;
+}
+
+.container-fluid {
+    padding-top: 50px;
+}
