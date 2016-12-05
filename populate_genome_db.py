@@ -4,6 +4,7 @@ import multiprocessing
 import os
 from datetime import datetime
 
+import requests
 from py2cytoscape import util as cy
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -23,6 +24,29 @@ GG_LOC = "/Users/shafferm/lab/HIV_5runs/qiime_files/99_otu_taxonomy.txt"
 KEGG_LOC = "/Users/shafferm/KEGG_late_june2011_snapshot/"
 chunk_size = 10000
 procs = 3
+
+
+# TODO: download greengenes and picrust files when called if not already present
+def download_file(url, local_directory):
+    """
+    Adapted from http://stackoverflow.com/questions/16694907/how-to-download-large-file-in-python-with-requests-py
+    Parameters
+    ----------
+    url: url to download from
+    local_directory: location to download
+
+    Returns
+    -------
+    local_path: full file path of downloaded file
+    """
+    local_filename = url.split('/')[-1]
+    local_path = os.path.join(local_directory, local_filename)
+    r = requests.get(url, stream=True)
+    with open(local_path, 'wb') as f:
+        for chunk in r.iter_content(chunk_size=1024):
+            if chunk:  # filter out keep-alive new chunks
+                f.write(chunk)
+    return local_path
 
 
 def breakup_list(l, n):
