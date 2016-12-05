@@ -347,7 +347,7 @@ def get_rxn2kos():
 
         if has_ortho is True:
             if len(r) != 6 and r.startswith('R') is False:
-                print r
+                print(r)
             for ko in kos:
                 rxn2kos[r].add(ko)
 
@@ -375,7 +375,7 @@ def get_rxn_names():
             i += 1
 
         if len(r) != 6 and r.startswith('R') is False:
-            print r
+            print(r)
         rxn_names[r] = name
 
     return rxn_names

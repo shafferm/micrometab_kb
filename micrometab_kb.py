@@ -59,16 +59,16 @@ def single_otu_result():
             try:
                 genome = session.query(Genome).filter_by(name=request.form['name']).one()
             except NoResultFound:
-                flash("OTU id %s not in database." % request.form['name'])
+                flash("OTU ID %s not in database." % request.form['name'])
                 return redirect(url_for('welcome_page'))
             metab_net_json = json.loads(genome.metab_net)
             metab_net = cy.to_networkx(metab_net_json)
             metab_net, ss = mna.determine_seed_set(metab_net)
-            seeds = [j for i in ss.values() for j in i]
+            seeds = [j for i in list(ss.values()) for j in i]
             return render_template('singleOTUResult.html', genome=genome, taxa_str=pretty_taxa(genome.taxonomy),
                                    seeds=sorted(seeds), eles=json.dumps(metab_net_json['elements']))
         else:
-            flash("No OTU id entered for single analysis.")
+            flash("No OTU ID entered for single analysis.")
             return redirect(url_for('welcome_page'))
     else:
         flash("How did you get here to single?")
@@ -103,8 +103,8 @@ def pair_otu_result():
             metab_net2 = cy.to_networkx(metab_net2_json)
             metab_net1, ss1 = mna.determine_seed_set(metab_net1)
             metab_net2, ss2 = mna.determine_seed_set(metab_net2)
-            seeds1 = set([j for i in ss1.values() for j in i])
-            seeds2 = set([j for i in ss2.values() for j in i])
+            seeds1 = set([j for i in list(ss1.values()) for j in i])
+            seeds2 = set([j for i in list(ss2.values()) for j in i])
             seeds1_only = seeds1-seeds2
             if seeds1_only == set():
                 seeds1_only = [None]
@@ -125,7 +125,7 @@ def pair_otu_result():
                                    otu1_seeds_otu2_complement=otu1_seeds_otu2_complement,
                                    otu2_seeds_otu1_complement=otu2_seeds_otu1_complement)
         else:
-            flash("Need to enter two OTU id's to compare OTUs")
+            flash("Need to enter two OTU ID's to compare OTUs")
             return redirect(url_for('welcome_page'))
     else:
         flash("How did you get to pairs then?")
@@ -137,7 +137,7 @@ def get_otu_json(otu_id):
     try:
         genome = session.query(Genome).filter_by(name=otu_id).one()
     except NoResultFound:
-        flash("OTU id %s not in database." % request.form['name'])
+        flash("OTU ID %s not in database." % request.form['name'])
         return redirect(url_for('welcome_page'))
     return jsonify(Genome=genome.serialize)
 

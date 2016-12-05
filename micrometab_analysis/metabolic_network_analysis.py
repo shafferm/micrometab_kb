@@ -1,43 +1,11 @@
-from __future__ import division
-
 import networkx as nx
 from collections import defaultdict
-import gzip
-from os import path
-from picrust.util import get_picrust_project_dir, convert_precalc_to_biom
 import warnings
 import requests
 from multiprocessing.pool import ThreadPool
 from micrometab_analysis.parse_KEGG import KEGGParser
 
 kegg = None
-
-def load_data_table(ids_to_load):
-    """Stolen from https://github.com/picrust/picrust/blob/master/scripts/predict_metagenomes.py
-    and modified.
-    Load a data table, detecting gziped files and subset loading
-    data_table_fp -- path to the input data table
-    load_data_table_in_biom -- if True, load the data table as a BIOM table rather
-    than as tab-delimited
-    suppress_subset_loading -- if True, load the entire table, rather than just
-    ids_of_interest
-    ids_to_load -- a list of OTU ids for which data should be loaded
-    gzipped files are detected based on the '.gz' suffix.
-    """
-    # first two lines adapted from determine_data_table_fp from
-    # https://github.com/picrust/picrust/blob/master/scripts/predict_metagenomes.py
-    # stolen setup from predict_metagenomes.py from PICRUSt
-    precalc_data_dir = path.join(get_picrust_project_dir(), 'picrust', 'data')
-    precalc_file_name = '_'.join(["ko", "13_5", 'precalculated.tab.gz'])
-    data_table_fp = path.join(precalc_data_dir, precalc_file_name)
-
-    if not path.exists(data_table_fp):
-        raise IOError("File " + data_table_fp + " doesn't exist! Did you forget to download it?")
-
-    genome_table_fh = gzip.open(data_table_fp, 'rb')
-    genome_table = convert_precalc_to_biom(genome_table_fh, ids_to_load)
-    return genome_table
-
 
 genes_seen = {}
 def get_kegg_rxns_from_gene_togows(gene):
@@ -289,7 +257,7 @@ def calculate_bss(network1, seeds1, network2, seeds2):
     # calculate bss for otu1 relative to otu2
     overlap_seed1net2 = 0
     network2_nodes = set(network2.nodes())
-    for seeds in seeds1.values():
+    for seeds in list(seeds1.values()):
         if len(set(seeds) & network2_nodes) > 0:
             overlap_seed1net2 += 1
     seed1net2_bss = overlap_seed1net2 / len(seeds1)
@@ -297,7 +265,7 @@ def calculate_bss(network1, seeds1, network2, seeds2):
     # calculate bss for otu2 relative to otu1
     overlap_seed2net1 = 0
     network1_nodes = set(network1.nodes())
-    for seeds in seeds2.values():
+    for seeds in list(seeds2.values()):
         if len(set(seeds) & network1_nodes) > 0:
             overlap_seed2net1 += 1
     seed2net1_bss = overlap_seed2net1 / len(seeds2)
@@ -307,20 +275,20 @@ def calculate_bss(network1, seeds1, network2, seeds2):
 
 def calculate_mci(network1, seeds1, network2, seeds2):
     # calculate mci for otu1 relative to otu2
-    otu2_inseeds = set.union(*[set(i) for i in seeds2.values()])
+    otu2_inseeds = set.union(*[set(i) for i in list(seeds2.values())])
     otu2_nodes = set(network2.nodes())
     overlap_seed1seed2 = 0
-    for seeds in seeds1.values():
+    for seeds in list(seeds1.values()):
         if len(set(seeds) & otu2_nodes) > 0:  # check if any of seed group in other network
             if len(set(seeds) & otu2_inseeds) == 0:  # check if any of seed group is seed in other network
                 overlap_seed1seed2 += 1
     seed1net2_mci = overlap_seed1seed2 / len(seeds1)
 
     # calculate mci for otu2 relative to otu1
-    otu1_inseeds = set.union(*[set(i) for i in seeds1.values()])
+    otu1_inseeds = set.union(*[set(i) for i in list(seeds1.values())])
     otu1_nodes = set(network1.nodes())
     overlap_seed2seed1 = 0
-    for seeds in seeds2.values():
+    for seeds in list(seeds2.values()):
         if len(set(seeds) & otu1_nodes) > 0:
             if len(set(seeds) & otu1_inseeds) == 0:
                 overlap_seed2seed1 += 1

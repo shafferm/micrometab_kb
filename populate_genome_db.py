@@ -10,6 +10,7 @@ from sqlalchemy.orm import sessionmaker
 
 from database_setup import Base, Genome
 from micrometab_analysis import metabolic_network_analysis as mna
+from micrometab_analysis.picrust_util import load_data_table
 
 engine = create_engine('sqlite:///gg_genomes.db')
 Base.metadata.bind = engine
@@ -31,20 +32,20 @@ def breakup_list(l, n):
 
 
 def generate_genome_local(otus, loc=None):
-    genome_table = mna.load_data_table([i[0] for i in otus])
+    genome_table = load_data_table([i[0] for i in otus])
     genomes = list()
     for otu_id, taxonomy in otus:
-        print os.getpid(), otu_id
+        print(os.getpid(), otu_id)
         nsti = genome_table.metadata(otu_id)['NSTI']
         genome = genome_table.ids(axis="observation")[genome_table.data(otu_id) > 0]
         genome = [str(i) for i in genome]
-        print os.getpid(), otu_id, "genome length", len(genome)
+        print(os.getpid(), otu_id, "genome length", len(genome))
         reactome = mna.get_reactome_local(genome, loc)
-        print os.getpid(), otu_id, "reactome length", len(reactome)
+        print(os.getpid(), otu_id, "reactome length", len(reactome))
         rxns = mna.get_rxns_local(reactome, loc)
-        print os.getpid(), otu_id, "reaction count", len(rxns)
+        print(os.getpid(), otu_id, "reaction count", len(rxns))
         metab_network = mna.make_metabolic_network(rxns, only_giant=True)
-        print os.getpid(), otu_id, "network made"
+        print(os.getpid(), otu_id, "network made")
         metab_network_json = cy.from_networkx(metab_network)
         genome = Genome(name=int(otu_id), nsti=float(nsti), metab_net=json.dumps(metab_network_json),
                         genome=','.join(genome), taxonomy=taxonomy)
@@ -56,7 +57,7 @@ def add_chunk_to_db(chunk):
     for genome in chunk:
         session.add(genome)
         session.commit()
-        print genome.name
+        print(genome.name)
 
 
 def add_chunks_to_db(chunks):
@@ -64,7 +65,7 @@ def add_chunks_to_db(chunks):
         for genome in chunk:
             session.add(genome)
             session.commit()
-            print genome.name
+            print(genome.name)
 
 
 def main():
@@ -84,7 +85,7 @@ def main():
         gg_genomes = {i.strip().split('\t')[0]: i.strip().split('\t')[1]
                       for i in open(args.gg_loc).readlines()[:args.subset]}
 
-    chunks = breakup_list(gg_genomes.items(), args.chunk_size)
+    chunks = breakup_list(list(gg_genomes.items()), args.chunk_size)
     pool = multiprocessing.Pool(args.nprocs)
     # pool.map_async(generate_genome, chunks, callback=add_chunks_to_db)
     for chunk in chunks:
@@ -93,7 +94,7 @@ def main():
     pool.join()
 
     finish = datetime.now()
-    print finish-start
+    print(finish-start)
 
 
 if __name__ == "__main__":
