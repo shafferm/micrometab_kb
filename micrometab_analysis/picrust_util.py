@@ -21,9 +21,8 @@ def load_data_table(ids_to_load):
     # first two lines adapted from determine_data_table_fp from
     # https://github.com/picrust/picrust/blob/master/scripts/predict_metagenomes.py
     # stolen setup from predict_metagenomes.py from PICRUSt
-    precalc_data_dir = path.join(get_picrust_project_dir(), 'data')
     precalc_file_name = '_'.join(["ko", "13_5", 'precalculated.tab.gz'])
-    data_table_fp = path.join(precalc_data_dir, precalc_file_name)
+    data_table_fp = path.join(get_data_dir(), precalc_file_name)
 
     if not path.exists(data_table_fp):
         raise IOError("File " + data_table_fp + " doesn't exist! Did you forget to download it?")
@@ -33,7 +32,7 @@ def load_data_table(ids_to_load):
     return genome_table
 
 
-def get_picrust_project_dir():
+def get_data_dir():
     """ Returns the top-level PICRUST directory
     """
     # Get the full path of util.py
@@ -41,7 +40,7 @@ def get_picrust_project_dir():
     # Get the directory containing util.py
     current_dir_path = path.dirname(current_file_path)
     # Return the directory containing the directory containing util.py
-    return path.dirname(current_dir_path)
+    return path.join(current_dir_path, 'data')
 
 
 def determine_metadata_type(line):

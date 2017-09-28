@@ -37,6 +37,7 @@ class KEGGParser:
         self.rxn_names = None
         self.ko_names = None
         self.co_names = None
+        self.pathway_names = None
         self.rxns = None
         self.pathway2cos = None
 
@@ -111,6 +112,11 @@ class KEGGParser:
         except KeyError:
             # print "KO id " + ko + " doesn't exist in this set."
             return set()
+    
+    def get_pathway_name(self, pathway):
+        if self.pathway_names is None:
+            self.pathway_names = get_ko_names()
+        return self.pathway_names[pathway]
 
     def get_cos_from_pathway(self, co):
         if self.pathway2cos is None:
@@ -589,6 +595,59 @@ def get_pathway2cos():
             i += 1
 
     return pathway2cos
+
+
+def get_pathway_names():
+    """make a dictionary with pathways as keys and pathway names as values"""
+    pathway_names = dict()
+
+    f = open(DATABASE_DIR+COMPOUND_LOC, 'U')
+    f = f.read()
+    f = f.strip().split('///')
+    for entry in f:
+        i = 0
+        start = ""
+        entry = entry.strip().split('\n')
+        while i < len(entry):
+            new_start = entry[i][:12].strip()
+            line = entry[i][12:].strip()
+
+            if new_start == "PATHWAY":
+                pathway = line.split()[0]
+                pathway_names[pathway[-5:]] = (" ").join(line.split()[1:])
+                start = new_start
+            elif new_start == "":
+                if start == "PATHWAY":
+                    pathway = line.split()[0]
+                    pathway_names[pathway[-5:]] = (" ").join(line.split()[1:])
+            else:
+                start = new_start
+            i += 1
+
+    f = open(DATABASE_DIR+GLYCAN_LOC, 'U')
+    f = f.read()
+    f = f.strip().split('///')
+    for entry in f:
+        i = 0
+        start = ""
+        entry = entry.strip().split('\n')
+        while i < len(entry):
+            new_start = entry[i][:12].strip()
+            line = entry[i][12:].strip()
+
+            if new_start == "PATHWAY":
+                pathway = line.split()[0]
+                pathway_names[pathway[-5:]] = (" ").join(line.split()[1:])
+                start = new_start
+            elif new_start == "":
+                if start == "PATHWAY":
+                    pathway = line.split()[0]
+                    pathway_names[pathway[-5:]] = (" ").join(line.split()[1:])
+            else:
+                start = new_start
+            i += 1
+
+    return pathway_names
 
 
 def get_co_counts():

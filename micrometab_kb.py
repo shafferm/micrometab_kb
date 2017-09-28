@@ -1,13 +1,16 @@
 import json
+from os import path
 
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 from py2cytoscape import util as cy
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.exc import NoResultFound
+from skbio import TreeNode
 
 from database_setup import Genome, Base
 from micrometab_analysis import metabolic_network_analysis as mna
+from micrometab_analysis import picrust_util as pu
 
 app = Flask(__name__)
 
@@ -45,6 +48,15 @@ def pretty_taxa(taxa_str):
         return "%s kingdom" % taxa[-1]
     else:
         return "Unclassified"
+
+
+# TODO: put this somewhere and have tree read in as a global
+def get_tip2tip(otu1, otu2):
+    tree_loc = path.join(pu.get_data_dir(), 'gg_13_8_otus', 'trees', '99_otus.tree')
+    tree = TreeNode.read(tree_loc)
+    tip_a = tree.find(str(otu1))
+    tip_b = tree.find(str(otu2))
+    return tip_a.distance(tip_b)
 
 
 @app.route('/')
@@ -96,7 +108,10 @@ def pair_otu_result():
             if exception:
                 return redirect(url_for('welcome_page'))
 
-            # get data and render webpage
+            # get tree data
+            tip2tip = get_tip2tip(genome1.name, genome2.name)
+
+            # get data and determine seeds
             metab_net1_json = json.loads(genome1.metab_net)
             metab_net1 = cy.to_networkx(metab_net1_json)
             metab_net2_json = json.loads(genome2.metab_net)
@@ -105,6 +120,8 @@ def pair_otu_result():
             metab_net2, ss2 = mna.determine_seed_set(metab_net2)
             seeds1 = set([j for i in list(ss1.values()) for j in i])
             seeds2 = set([j for i in list(ss2.values()) for j in i])
+
+            # analyze seeds and determine metabolic characteristics
             seeds1_only = seeds1-seeds2
             if seeds1_only == set():
                 seeds1_only = [None]
@@ -116,12 +133,15 @@ def pair_otu_result():
             otu2_seeds_otu1_complement = seeds2_only & set(metab_net1.nodes())
             net1net2_bss, net2net1_bss = mna.calculate_bss(metab_net1, ss1, metab_net2, ss2)
             net1net2_mci, net2net1_mci = mna.calculate_mci(metab_net1, ss1, metab_net2, ss2)
+
+            # render page
             return render_template('pairOTUResult.html', genome1=genome1, taxa_str1=pretty_taxa(genome1.taxonomy),
                                    seeds1=sorted(seeds1_only), eles1=json.dumps(metab_net1_json['elements']),
                                    genome2=genome2, taxa_str2=pretty_taxa(genome2.taxonomy), seeds2=sorted(seeds2_only),
-                                   eles2=json.dumps(metab_net2_json['elements']), shared_seeds=sorted(shared_seeds),
-                                   net1net2_bss=round(net1net2_bss, 2), net2net1_bss=round(net2net1_bss, 2),
-                                   net1net2_mci=round(net1net2_mci, 2), net2net1_mci=round(net2net1_mci, 2),
+                                   eles2=json.dumps(metab_net2_json['elements']), tip2tip=round(tip2tip, 2),
+                                   shared_seeds=sorted(shared_seeds), net1net2_bss=round(net1net2_bss, 2),
+                                   net2net1_bss=round(net2net1_bss, 2), net1net2_mci=round(net1net2_mci, 2),
+                                   net2net1_mci=round(net2net1_mci, 2),
                                    otu1_seeds_otu2_complement=otu1_seeds_otu2_complement,
                                    otu2_seeds_otu1_complement=otu2_seeds_otu1_complement)
         else:
