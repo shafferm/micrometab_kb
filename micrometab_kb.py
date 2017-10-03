@@ -1,5 +1,6 @@
 import json
 from os import path
+from itertools import zip_longest
 
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 from py2cytoscape import util as cy
@@ -152,14 +153,19 @@ def pair_otu_result():
         return redirect(url_for('welcome_page'))
 
 
-@app.route('/get/<int:otu_id>')
-def get_otu_json(otu_id):
-    try:
-        genome = session.query(Genome).filter_by(name=otu_id).one()
-    except NoResultFound:
-        flash("OTU ID %s not in database." % request.form['name'])
-        return redirect(url_for('welcome_page'))
-    return jsonify(Genome=genome.serialize)
+@app.route('/get/<string:otu_ids>')
+def get_otu_json(otu_ids):
+    otu_ids = otu_ids.split(',')
+    genome_dict = dict()
+    for i in range(0, len(otu_ids), 995):
+        chunk = otu_ids[i:i+995]
+        genomes = session.query(Genome).filter(Genome.name.in_(chunk))
+        if genomes.count() == len(chunk):
+            genome_dict.update({genome.name: genome.serialize for genome in genomes})
+        else:
+            found_ids = set(otu_ids) - set([i.name for i in genomes])
+            raise NoResultFound("Not all OTUs found. %s are missing" % ', '.join(found_ids))
+    return jsonify(genome_dict)
 
 
 if __name__ == '__main__':
